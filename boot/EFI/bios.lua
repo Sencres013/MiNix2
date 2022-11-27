@@ -22,8 +22,10 @@ do
     end
 end
 
+
+local eeprom = component.proxy(component.list("eeprom")());
+error("a: " .. eeprom.getData(), 0);
 do
-    local eeprom = component.proxy(component.list("eeprom")());
 
     computer.getBootAddress = computer.getBootAddress or function() return eeprom.getData() end;
     computer.setBootAddress = computer.setBootAddress or function(data) return eeprom.setData(data) end;
@@ -32,11 +34,11 @@ end
 local main;
 
 do
-    local bootFs, fsList, index = component.proxy(computer.getBootAddress()), {}, 1;
+    local bootFs, fsList, index = component.proxy(eeprom.getData()), {}, 1;
 
     if not bootFs then
         local tempIndex = 1;
-        for address, _ in component.list("filesystem") do
+        for address in component.list("filesystem") do
             fsList[tempIndex] = address;
             tempIndex = tempIndex + 1;
         end
