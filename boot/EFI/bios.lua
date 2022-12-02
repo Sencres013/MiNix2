@@ -76,7 +76,7 @@ local function status(text, statusCode)
             statusOffset = 3;
         end
         
-        gpu.set(1, lineNum, "[");
+        gpu.set(1, 1, "[");
         gpu.setForeground(statusColor);
         gpu.set(statusOffset, lineNum, statusText);
         gpu.setForeground(0xFFFFFF);
@@ -152,72 +152,6 @@ if init == "fail" then
 end
 
 status("Loaded init file", 1);
-status("Initializing module system");
-
-package = {
-    preload = {},
-    loaded = {},
-    search = function(module, path)
-        checkArg(1, module, "string");
-        checkArg(2, path, "string", "nil");
-
-        path = path or "/";
-
-        if bootFs.exists(path .. module) then
-            return (path .. module);
-        end
-
-        for obj in bootFs.list(path) do
-            if bootFs.isDirectory(obj) then
-                local found = package.search(module, obj);
-
-                if found then
-                    return found;
-                end
-            end
-        end
-
-        return false;
-    end
-};
-
--- analogous to lua module requiring
-function require(module)
-    checkArg(1, module, "string");
-
-    if package.loaded[module] then
-        return package.loaded[module];
-    elseif package.preload[module] then
-        error("Recursive require detected in module " .. module, 0);
-    end
-
-    preload[module] = true;
-
-    local modulePath = package.search(module);
-    if not modulePath then
-        error("Module " .. module .. " not found", 0);
-    end
-
-    local handle = bootFs.open(modulePath);
-
-    local buffer, data = "", "";
-    repeat
-        data = data .. buffer;
-        buffer = bootFs.read(handle, math.huge);
-    until not buffer
-
-    local res, err = load(data, "=" .. module);
-
-    if res == "fail" then
-        error("Error loading module: " .. tostring(err), 0);
-    end
-
-    package.preload[module] = nil;
-    package.loaded[module] = res() or true;
-    return package.loaded[module];
-end
-
-status("Initialized module system");
 
 init();
 
