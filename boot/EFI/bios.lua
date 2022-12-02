@@ -122,29 +122,95 @@ end
 
 eeprom.setData(bootFs.address);
 
-status("Reading init file");
+function dofile(path)
+    checkArg(1, path, "string");
 
-local handle = bootFs.open("/sbin/init.lua");
+    local filename = string.sub(path, (#path - (string.find(string.reverse(path), "/") or #path + 1) + 2) or 0, #path);
 
-local buffer, data = "", "";
-repeat
-    data = data .. buffer;
-    buffer = bootFs.read(handle, math.huge);
-until not buffer
+    if not bootFs.exists(path) then
+        error("Can't find file " .. filename, 0);
+    elseif bootFs.isDirectory(path) then
+        error(path .. " is a directory", 0);
+    end
+
+    local handle = bootFs.open(path);
+
+    local buffer, data = "", "";
+    repeat
+        data = data .. buffer;
+        buffer = bootFs.read(handle, math.huge);
+    until not buffer
+
+    local res, err = load(data, "=" .. string.sub(filename, 1, string.find(filename, ".", 1, true) - 1));
+
+    if res == "fail" then
+        error("Error executing " .. filename .. ": " .. tostring(err), 0);
+    end
+
+    return res;
+end
 
 status("Loading init file");
 
-local init, err = load(data, "=init");
-
-if init == "fail" then
-    error("Error loading OS: " .. tostring(err), 0);
-end
+local init = dofile("/sbin/init.lua");
 
 status("Loaded init file", 1);
+status("Initializing module system");
 
-while true do
-    computer.pullSignal();
+package = {
+    preload = {},
+    loaded = {},
+    search = function(module, path)
+        checkArg(1, module, "string");
+        checkArg(2, path, "string", "nil");
+
+        path = path or "/";
+
+        if bootFs.exists(path .. module) then
+            return (path .. module);
+        end
+
+        for obj in bootFs.list(path) do
+            if bootFs.isDirectory(obj) then
+                local found = package.search(module, obj);
+
+                if found then
+                    return found;
+                end
+            end
+        end
+
+        return false;
+    end
+};
+
+-- analogous to lua module requiring
+function require(module)
+    checkArg(1, module, "string");
+
+    if package.loaded[module] then
+        return package.loaded[module];
+    elseif package.preload[module] then
+        error("Recursive require detected in module " .. module, 0);
+    end
+
+    preload[module] = true;
+
+    local modulePath = package.search(module);
+    if not modulePath then
+        error("Module " .. module .. " not found", 0);
+    end
+
+    local res = dofile(modulePath);
+
+    package.preload[module] = nil;
+    package.loaded[module] = res() or true;
+    return package.loaded[module];
 end
+
+status("Initialized module system");
+
+init();
 
 -- as to not get a "computer halted" error
 computer.shutdown();
