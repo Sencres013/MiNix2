@@ -92,7 +92,7 @@ local eeprom = component.proxy(component.list("eeprom")());
 local bootFs = component.proxy(eeprom.getData());
 
 if bootFs then
-    status("Found bootable MiNix medium");
+    status("Found bootable MiNix medium", 1);
 else
     for address in component.list("filesystem") do
         local fs = component.proxy(address);
@@ -102,21 +102,19 @@ else
             break;
         end
     end
-end
 
-if bootFs then
-    status("Found bootable MiNix medium");
-else
-    status("Bootable MiNix filesystem not found", 2);
-    status("Waiting for insertion of a bootable MiNix filesystem");
+    if not bootFs then
+        status("Bootable MiNix filesystem not found", 2);
+        status("Waiting for insertion of a bootable MiNix filesystem");
 
-    while true do
-        local signal = table.pack(computer.pullSignal());
+        while true do
+            local signal = table.pack(computer.pullSignal());
 
-        if signal[1] == "component_added" and signal[3] == "filesystem" then
-            if component.invoke(signal[2], "exists", "/sbin/init.lua") then
-                bootFs = signal[2];
-                break;
+            if signal[1] == "component_added" and signal[3] == "filesystem" then
+                if component.invoke(signal[2], "exists", "/sbin/init.lua") then
+                    bootFs = signal[2];
+                    break;
+                end
             end
         end
     end
