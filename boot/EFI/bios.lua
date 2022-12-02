@@ -22,16 +22,9 @@ end
 
 local screenWidth, screenHeight = gpu.getResolution();
 
-local function sleep(seconds)
-    local deadline2 = computer.uptime() + seconds;
-    while computer.uptime() < deadline2 do
-        computer.pullSignal(deadline2 - computer.uptime());
-    end
-end
-
 gpu.setDepth(gpu.maxDepth());
 gpu.setBackground(0x000000);
-gpu.setForeground(0x5A5A5A);
+gpu.setForeground(0xA5A5A5);
 gpu.fill(1, 1, screenWidth, screenHeight, " ");
 gpu.set(1, screenHeight, "Ctrl - ");
 gpu.setForeground(0xFFFFFF);
@@ -76,11 +69,11 @@ local function status(text, statusCode)
             statusOffset = 3;
         end
         
-        gpu.set(1, 1, "[");
+        gpu.set(1, lineNum, "[");
         gpu.setForeground(statusColor);
         gpu.set(statusOffset, lineNum, statusText);
         gpu.setForeground(0xFFFFFF);
-        gpu.set(8, 1, "]");
+        gpu.set(8, lineNum, "]");
     end
     
     for i = 0, #text // (screenWidth - 9), 1 do
