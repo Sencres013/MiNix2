@@ -42,10 +42,7 @@ while computer.uptime() < deadline do
     end
 end
 
-local function scroll()
-    gpu.copy(1, 2, screenWidth, screenHeight - 1, 0, -1);
-    gpu.fill(1, screenHeight, screenWidth, 1, " ");
-end
+gpu.fill(1, 1, screenWidth, screenHeight, " ");
 
 local lineNum = 1;
 
@@ -80,7 +77,8 @@ local function status(text, statusCode)
         gpu.set(10, lineNum, string.sub(text, i * (screenWidth - 9), math.min((i + 1) * (screenWidth - 9), #text)));
         
         if lineNum + 1 > screenHeight then
-            scroll();
+            gpu.copy(1, 2, screenWidth, screenHeight - 1, 0, -1);
+            gpu.fill(1, screenHeight, screenWidth, 1, " ");
         else
             lineNum = lineNum + 1;
         end
@@ -146,7 +144,9 @@ end
 
 status("Loaded init file", 1);
 
-init();
+while true do
+    computer.pullSignal();
+end
 
 -- as to not get a "computer halted" error
 computer.shutdown();
